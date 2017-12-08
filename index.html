@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alzheimers</title>
+
+    <!--font-->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:100,400,300,400italic,700' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+<body>
+
+<div class="background">
+
+    <h1 class="white_header">Classification of Alzheimer’s Disease with Machine Learning Algorithm and Mixed-Effect Model</h1>
+
+    <div class="white_text">
+        <p>  CS 109, Fall 2017    </p>
+        <p>Mengting Li, Qian Di, Qiuhao Zhang, Xiao Zhang</p>
+        <p ><b>Instructor:</b> Pavlos Protopapas, Kevin A. Rader, Rahul Dave, Margo Levine</p>
+        <div class="link_top">
+            <a  href="html/EDA.html">EDA</a> |
+            <a  href="html/models.html">Models</a> |
+            <a  href="https://github.com/xiaozhang92/109final/blob/master/models/mixed-effect-model.R">Mixed Effect Model</a>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="introduction">
+    <h1 class="head1">Introduction</h1>
+    <div class ="text">
+        <p>Alzheimer’s disease (AD) is a chronic progressive neurodegenerative disorder that causes dementia, memory loss, and eventually death. The biological and neurological cause of AD is poorly understood, and no treatment can reverse or stop the symptom.<sup>1</sup> </p>
+        <p>To diagnose and predict AD, existing literature has used demographic information, genetic data, neuropsychological tests, biomarkers and brain imaging data.<sup>2</sup>
+            In particular, brain imaging technology, such as MRI, fMRI, DTI has been widely applied in diagnosis and achieved high accuracy<sup>3</sup> , and random forest demonstrated good performance in the diagnosis<sup>4</sup>. </p>
+        <p>However, apart from some recent attempts<sup>5</sup>, most existing literature used only data source or one classification algorithm to diagnose AD.
+            Meanwhile, the rich predictor variables available and various classification algorithms we have learned from CS109 intrigue us to explore more complex model and more explanatory variables.</p>
+        <p>Therefore, in this final project, our team will explore building a classification model for AD with various predictor variables (genetic data, imaging data and other demographic data) and multiple classification algorithms
+            (a random forest, neural network, logistic regression, mixed-effect model, etc.), and compare their classification performance.</p>
+    </div>
+    <div class="citation">
+        <p> <sup>1</sup>Burns, A., Iliffe S ((2009)) Alzheimer’s disease. <i>BMJ</i>, 338, p.b158.</p>
+        <p> <sup>2</sup>Epelbaum, S., Genthon, R., Cavedo, E., Habert, M.O., Lamari, F., Gagliardi, G., Lista, S., Teichmann, M., Bakardjian,
+            H., Hampel, H. and Dubois, B., 2017. Preclinical Alzheimer's disease: A systematic review of the cohorts underlying the concept.
+            <i>Alzheimer's & Dementia</i>.</p>
+        <p><sup>3</sup>Rathore, S., Habes, M., Iftikhar, M.A., Shacklett, A. and Davatzikos, C., 2017. A review on neuroimaging-based classification
+            studies and associated feature extraction methods for Alzheimer's disease and its prodromal stages. <i>NeuroImage</i>.</p>
+        <p><sup>4</sup>Sarica, A., Cerasa, A. and Quattrone, A., 2017. Random Forest Algorithm for the Classification of Neuroimaging Data in Alzheimer's
+            Disease: A Systematic Review. <i>Frontiers in Aging Neuroscience</i>, 9, p.329.</p>
+        <p> <sup>5</sup>Dukart, J., Sambataro, F. and Bertolino, A., 2016. Accurate prediction of conversion to Alzheimer’s disease using imaging, genetic,
+            and neuropsychological biomarkers. <i>Journal of Alzheimer's Disease</i>, 49(4), pp.1143-1159.</p>
+    </div>
+</div>
+
+
+<div class="data">
+    <h1 class="head1">Data</h1>
+    <div class ="text">
+       <p>In our study, we only used data from ADNI1 dataset (referred as ADNI below). The ADNI dataset is a longitudinal one, where a subject may have multiple visits and measurements (e.g., biomarkers, MRI images, AD diagnosis and others).
+           For longitudinal dataset, within-individual correlation (i.e., measurements for the same person at different time are correlated) and between-individual variation (i.e., measurements from two people are relatively unlike) are important features.
+           In terms of file structure, ADNI project has many variables scatters in multiple files. Those files cover various aspects and share the same subject ID and visitor ID. We merged ADNI data on ADNIMERGE.csv and UPENNBIOMK_MASTER.csv based on the participant
+           roster ID and visit code. ADNIMERGE.csv contains ADNI participant demographics (gender, age, race, etc.), clinical assessments (ventricular, hippocampus, ICV, etc.) and cognitive assessments (ADAS, MMSE, RAVLT, etc.), while UPENNBIOMK_MASTER.csv contain
+           the biomarker data (Tau, Amyloid beta and P-Tau, etc.), which have been reported as significant indicators of AD.   </p>
+        <p>For data preprocessing, we applied one-hot encodings for categorical variables. Unique categorical values with less than 5% of appearance were merged together to control the number of dummy variables. Both numerical and dummy variables are standardized. </p>
+         </div>
+</div>
+
+
+<div class="Method">
+    <h1 class="head1">Method</h1>
+    <div class ="text">
+        <h3>Method Overview</h3>
+        <p>Our goal is classification on AD, which uses existing relationships between a variety of predictor variables and diagnosis outcome to predict the most probably diagnostic outcome for subjects with predictor variables available. We mainly focused on predicting binary outcome (e.g., AD vs. non-AD, including both controls and mild cognitive impairment [MCI]). As a comparison, we also conducted classification in a multinomial and one-vs-rest (OvR) way. </p>
+        <p>The classification is commonly used and has clinical implication: since the golden standard of AD is by autopsy and good classification model on AD can help improve diagnosis when patient is still alive and autopsy is not possible. In addition, classification model could be used for screening to avoid costly diagnostic progress on each subject. Moreover, classification model reveals important predictors of AD, shedding light on the mysterious unknown biological mechanism.</p>
+        <p>We randomly divided our subjects into training-testing datasets, along with their longitudinal records. All records from a single subject is either in training or testing dataset. For the baseline model, we used multinomial logistic regression and OvR logistic regression model to predict all the categories in diagnose, which not only includes AD, but also includes control (CN) and MCI.  Then, we performed classification using random forest (RF), gradient boosted decision trees (GBDT), logistic model (LR), and mixed-effect model on the training data set and evaluated model performance on the testing data set. </p>
+
+        <h3>Missing Data</h3>
+        <p>We filled missing data with mean values or using multiple imputation (“mice” in R, version 3.3.2). For gradient boosting trees, XGBoost package in python deals with missing data automatically using a sparse-aware split finding method<sup>6</sup>,
+            which handles missing data in the direction that is best for data approximation. </p>
+
+        <h3>Classification Algorithm</h3>
+        <p>For RF, GBDT, and LR, the classification task is conceptualized as building an empirical relationship between outcome Y, i.e., AD diagnosis, and predictor variables X. We used multiple classification approaches, which is one advantage of our final project.
+            However, these three classification algorithms take all records without differentiating which subject each record comes from. In other words, all three methods treat all records as separate ones, and individual-level effect is not considered. AD diagnosis
+            and progression were found to be highly individual specific <sup>7</sup>.Between-individual variation and within-individual correlation are informative to classification. </p>
+        <p>To address this drawback, we also used mixed-effect model, which explicitly takes individual-level effect into account by putting a random intercept on each subject to improve classification performance. This is another advantage of our final project.</p>
+
+        <h3>Variable Selection</h3>
+        <p>We used both expert knowledge and Lasso regression to select important variables. First, based on common knowledge and existing literature, we decided demographic variable (e.g., race, age, years of education, marriage status, etc), biomarkers (e.g., Tau, P-Tau and Abeta) to be important predictors. Cognitive testing results were used with caution, since cognitive results and AD diagnosis are assessed in similar ways. Incorporating cognitive testing results may introduce reverse caution.</p>
+        <p>For mixed-effect model, we used Lasso regression to select variables, since some variables we selected by expert knowledge demonstrated high correlation. Thus, the fitting algorithm of mixed-effect model was unstable and had convergence issue with correlated data. Thus, we first used Lasso regression to select variables and fit variables with non-zero coefficients into mixed-effect model. Stepwise regression (e.g., forward selection and backward selection) was not used to avoid multiple comparison issues. </p>
+        <p>Descriptive analysis is presented in Table 1.</p>
+        <h3>Implementation</h3>
+        <p>For LR, L2 penalty was applied for regularization to avoid overfitting and the regularization parameter is tuned using cross validation. </p>
+        <p>For RF, we tried to introduce the gap variables for several variables such as “Hippocampus”,  “WholeBrain” and others, to account for the percent of change from baseline to the visit. Other variables are the same with the logistic regression. As for parameter tuning, we mainly tuned the number of trees and the maximal depth using grid search under five-fold cross-validation.  </p>
+        <p>For GBDT, the key parameters, including learning rate, max depth of trees, proportion of features/samples used for training were tuned using grid search and cross validation. Then, the number of boosting rounds was tuned using the early stop feature in XGBoost for python to avoid overfitting. </p>
+        <p>For mixed-effect model, we used the link function to be logit and put random intercept on each individual.
+            We implemented LR, RF and GBDT in python, and mixed-effect model in R.
+        </p>
+    </div>
+    <div class="citation">
+        <p> <sup>6</sup> Chen, T., & Guestrin, C. (2016). Xgboost: A scalable tree boosting system. In <i>Proceedings of the 22nd acm sigkdd international conference on knowledge discovery and data mining</i> (pp. 785-794). ACM.</p>
+        <p> <sup>7</sup> Davatzikos, C., Resnick, S.M., Wu, X., Parmpi, P. and Clark, C.M., 2008. Individual patient diagnosis of AD and FTD via high-dimensional pattern classification of MRI. <i>Neuroimage, 41</i>(4), pp.1220-1227.
+            </p>
+    </div>
+</div>
+
+<div class="Result">
+    <h1 class="head1">Result</h1>
+    <div class ="text">
+        <p>Table 1 displays the descriptive analysis of predictor variables used in both machine learning models and mixed-effect model. The study population is predominantly non-Hispanic white subjects with slightly more males than females. Table 2 presents classification accuracy of all methods. </p>
+        <p>For RF, we tuned the number of trees in a range from 10 to 200 and maximal depth from 1 to 100, also including none. After parameter tuning, we finally chose the number of trees as 200 and maximal depth as 5. The test accuracy for the best RF model is 86.90%. The ROC analysis yielded a AUC of 0.95. The performance of GBDT and LR was similar to RF, with testing accuracy lower than 90%.</p>
+        <p>For mixed-effect model, the classification accuracy on testing data set is 91.06%, which is comparable to other machine learning approaches. Mixed-effect model without random effect on individual yielded lower classification accuracy, which proves the usefulness of mixed-effect model.</p>
+        <p>For Multinomial and OvR logistic regressions, the testing accuracy values were about 63%, which was much lower compared with model that classified AD vs. non-AD.</p>
+
+        <h4><b>Figure 1. ROC curves of Random Forest, Gradient Boosting Decision Tree and Logistic Regression</b></h4>
+        <img class="roc" src="img/roc.png">
+        <h4><b>Table 1 Descriptive Analysis of Predictor Variables</b></h4>
+        <table>
+            <tr>
+                <th>Variable Name</th>
+                <th>Min</th>
+                <th>Value</th>
+                <th>Mean</th>
+                <th>Standard Deviation</th>
+            </tr>
+            <tr>
+                <td>Age</td>
+                <td>54.40</td>
+                <td>91.40</td>
+                <td>73.77</td>
+                <td>6.98</td>
+            </tr>
+            <tr>
+                <td>Black (%)</td>
+                <td></td>
+                <td></td>
+                <td>3.86%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Asian (%)</td>
+                <td></td>
+                <td></td>
+                <td>1.74%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>non hispanic or latino (%)</td>
+                <td></td>
+                <td></td>
+                <td>96.77%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Married (%)</td>
+                <td></td>
+                <td></td>
+                <td>76.62%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Divorced (%)</td>
+                <td></td>
+                <td></td>
+                <td>8.01%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Year of education</td>
+                <td>4.00</td>
+                <td>20.00</td>
+                <td>15.99</td>
+                <td>2.82</td>
+            </tr>
+            <tr>
+                <td>ADNIGO (%)</td>
+                <td></td>
+                <td></td>
+                <td>6.18%</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Month</td>
+                <td>0.00</td>
+                <td>126.00</td>
+                <td>26.50</td>
+                <td>26.40</td>
+            </tr>
+            <tr>
+            <td>Entorhinal</td>
+            <td>1041.00</td>
+            <td>6711.00</td>
+            <td>3444.73</td>
+            <td>811.71</td>
+        </tr>
+            <tr>
+                <td>EcogPtLang_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.75</td>
+                <td>0.63</td>
+            </tr>
+            <tr>
+                <td>EcogSPDivatt</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>2.00</td>
+                <td>1.02</td>
+            </tr>
+            <tr>
+                <td>Ventricles_bl</td>
+                <td>5650.00</td>
+                <td>145115.00</td>
+                <td>38945.06</td>
+                <td>21835.33</td>
+            </tr>
+            <tr>
+                <td>EcogSPVisspat_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.42</td>
+                <td>0.66</td>
+            </tr>
+            <tr>
+                <td>EcogPtVisspat_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.38</td>
+                <td>0.53</td>
+            </tr>
+            <tr>
+                <td>EcogPtDivatt</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.83</td>
+                <td>0.75</td>
+            </tr>
+            <tr>
+                <td>PIB_bl</td>
+                <td>1.16</td>
+                <td>2.28</td>
+                <td>1.59</td>
+                <td>0.31</td>
+            </tr>
+            <tr>
+                <td>EcogSPPlan_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.54</td>
+                <td>0.75</td>
+            </tr>
+            <tr>
+                <td>Entorhinal_bl</td>
+                <td>1426.00</td>
+                <td>5896.00</td>
+                <td>3555.20</td>
+                <td>771.05</td>
+            </tr>
+            <tr>
+                <td>Hippocampus</td>
+                <td>2219.00</td>
+                <td>11207.00</td>
+                <td>6682.11</td>
+                <td>1240.06</td>
+            </tr>
+            <tr>
+                <td>AV45</td>
+                <td>0.81</td>
+                <td>2.67</td>
+                <td>1.20</td>
+                <td>0.23</td>
+            </tr>
+            <tr>
+                <td>EcogSPOrgan</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.80</td>
+                <td>0.99</td>
+            </tr>
+            <tr>
+                <td>EcogPtOrgan_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>1.52</td>
+                <td>0.62</td>
+            </tr>
+            <tr>
+                <td>RAVLT_learning_bl</td>
+                <td>-4.00</td>
+                <td>12.00</td>
+                <td>4.43</td>
+                <td>2.71</td>
+            </tr>
+            <tr>
+                <td>RAVLT_perc_forgetting_bl</td>
+                <td>-100.00</td>
+                <td>100.00</td>
+                <td>54.96</td>
+                <td>34.36</td>
+            </tr>
+            <tr>
+                <td>EcogPtMem_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>2.13</td>
+                <td>0.72</td>
+            </tr>
+            <tr>
+                <td>AV45_bl</td>
+                <td>0.84</td>
+                <td>2.03</td>
+                <td>1.20</td>
+                <td>0.22</td>
+            </tr>
+            <tr>
+                <td>EcogSPMem_bl</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>2.05</td>
+                <td>0.89</td>
+            </tr>
+            <tr>
+                <td>EcogSPMem</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>2.15</td>
+                <td>1.00</td>
+            </tr>
+            <tr>
+                <td>APOE4</td>
+                <td>0.00</td>
+                <td>2.00</td>
+                <td>0.54</td>
+                <td>0.66</td>
+            </tr>
+            <tr>
+                <td>EcogPtMem</td>
+                <td>1.00</td>
+                <td>4.00</td>
+                <td>2.07</td>
+                <td>0.74</td>
+            </tr>
+            <tr>
+                <td>CDRSB_bl</td>
+                <td>0.00</td>
+                <td>10.00</td>
+                <td>1.34</td>
+                <td>1.55</td>
+            </tr>
+            <tr>
+                <td>ADAS13</td>
+                <td>0.00</td>
+                <td>85.00</td>
+                <td>17.51</td>
+                <td>11.68</td>
+            </tr>
+
+        </table>
+        <h4><b>Table 2 Classification Accuracy of Different Classification Methods</b></h4>
+        <table>
+            <tr>
+                <th>Model Name</th>
+                <th>Classification Accuracy on the Training Data set</th>
+                <th>Classification Accuracy on the Testing Data set</th>
+            </tr>
+            <tr>
+                <td>Random Forest </td>
+                <td>100.00%</td>
+                <td>86.90%</td>
+            </tr>
+            <tr>
+                <td>Gradient Boosted Decision Trees</td>
+                <td>98.65%</td>
+                <td>88.55%	</td>
+            </tr>
+            <tr>
+                <td>Mixed-effect Model (with random effect)</td>
+                <td>97.58%</td>
+                <td>91.06%</td>
+            </tr>
+            <tr>
+                <td>Mixed-effect Model (without random effect)</td>
+                <td>91.39%</td>
+                <td>90.58%</td>
+            </tr>
+            <tr>
+                <td>Multinomial Logistic Regression</td>
+                <td>64.45%</td>
+                <td>63.39%</td>
+            </tr>
+            <tr>
+                <td>OvR Logistic Regression</td>
+                <td>64.56%</td>
+                <td>63.15%</td>
+            </tr>
+
+        </table>
+    </div>
+</div>
+
+<div class="Discussion">
+    <h1 class="head1">Discussion</h1>
+    <div class ="text">
+        <p>In this study, we used multiple methods to classify AD diagnostic results on ADNI subjects. The classification methods included conventional machine learning methods covered in the class, such as logistic regression, gradient boosting decision tree, and random forest, and statistic method outside this class, mixed-effect model. </p>
+        <h3>Individual-level effect</h3>
+        <p>Among all classification results, mixed-effect outperformed other methods. The reason lies in random effect. As mentioned in the Introduction Section, longitudinal data is featured by within-individual correlation and between-individual variation. By explicitly putting a random intercept at the individual level, mixed-effect model takes the extra individual-level information (random effect) into account and assumed a universal effect of each predictor (fixed effect). The combination of random and fixed effects boosts model performance. </p>
+        <p>On the other hand, all machine learning algorithm treated records as separate ones. Without information individual-level effect, it is not surprising that machine learning algorithms underperformed to mixed-effect model.</p>
+
+        <h3>Variable Contribution</h3>
+        <p>To quantify the contribution of each predictor variables, we compared the coefficient (absolute value) of each predictor variable from a Lasso regression (Figure 1). Cognitive testing results (e.g., CDRSB, MMSE_bl, ADAS13, RAVLT immediate, CDRSB_bl, etc.) demonstrated very high explanatory power, although we decided not to use them due to reverse causation issue. This is what we have expected: AD is featured by cognitive impairment and cognitive testing results are certainly highly correlated with AD outcome. Beside, since AD progresses with time, so time indicators, such as time of visit (variable “M”) and age, are important predictors. </p>
+        <p>Moreover, we found that being divorced is a strong predictor, as well as being married and being single, although to a lesser extent (Figure 2). Mixed-effect model results indicated negative coefficients for being married and divorced, a positive value for never married. In other words, marriage can prevent AD; but a bad marriage seems to contribute to AD progression, so being divorced is protective to AD. Moreover, being single for lifelong is a risk factor of AD.</p>
+        <p>In the RF model, we tried to introduce seven percentage-change variables (for 'Ventricles', 'Hippocampus', 'WholeBrain', 'Entorhinal', 'Fusiform', 'MidTemp', 'ICV'), but only three of them were left in the final training set ('WholeBrain', 'Ventricles', 'ICV'), because others have too many missing values. The intuition is that the exact volume of these parts may not be most important, but the change in the volume (atrophy of the brain) might be more related with the outcome. However, introducing these variables did not significantly improve the accuracy. The reason might be that the baseline and current measurements already provided enough information for the change, and no other variables are needed. </p>
+        <h4><b>Figure 2. Contribution of Variable from Lasso Regression</b></h4>
+    </div>
+    <img class="img2" src="img/bar.png">
+
+</div>
+
+<div class="Future">
+    <h1 class="head1">Future Work</h1>
+    <div class ="text">
+        <p>There are several possible improvements. First, adding more interaction and high order terms into mixed-effect model could help model performance. The mixed-effect model takes the linear term of each predictor variables without any interaction terms,
+            while some expert knowledge suggest nonlinear effect and interaction. For example, AD progresses much faster as age<sup>8</sup>, and putting a quadratic term or a spline on age is more appropriate. In addition, AD progress differs by sex<sup>9</sup>, and incorporating
+            interaction terms between sex and other predictor variable may further improve classification accuracy. However, constrained by time limit of the final project, we have to stop at the current model.</p>
+        <p>The second improvement is to incorporate individual-effect, i.e., a counterpart of random-effect in mixed-effect model, into machine learning algorithms. An easy way of implementation is to add dummy variables by person. However, this solution has two main deficiencies: first, it takes too many degrees of freedom and imposes heavy computational load. Second, training data set and testing data set include different subjects and thus different dummy variables. So, model trained on the training data set cannot make prediction on the testing data set. </p>
+
+    </div>
+
+    <div class="citation">
+        <p> <sup>8</sup> Hardy, J. and Selkoe, D.J., 2002. The amyloid hypothesis of Alzheimer's disease: progress and problems on the road to therapeutics. <i>science</i>, 297(5580), pp.353-356.
+           </p>
+        <p> <sup>9</sup> Mielke, M.M., Vemuri, P. and Rocca, W.A., 2014. Clinical epidemiology of Alzheimer’s disease: assessing sex and gender differences. <i>Clinical epidemiology, 6</i>, p.37.
+        </p>
+    </div>
+</div>
+
+</body>
+</html>
